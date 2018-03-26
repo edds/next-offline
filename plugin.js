@@ -1,5 +1,6 @@
-const fs = require('fs-extra')
+const { writeFile } = require('fs-extra')
 const { join } = require('path')
+const { generateSW } = require('workbox-build');
 const nextFiles = require('./next-files.js')
 
 module.exports = class NextFilePrecacherPlugin {
@@ -20,14 +21,25 @@ module.exports = class NextFilePrecacherPlugin {
 
     compiler.plugin('done', async () => {
       const manifest = await nextFiles(this.opts.buildId)
-      const genSw = await fs.readFile(join(this.opts.outputPath, 'service-worker.js'), 'utf8')
+      const cwd = process.cwd()
+      // const genSw = await fs.readFile(join(this.opts.outputPath, 'service-worker.js')
+      // join(this.opts.outputPath, 'service-worker.js'), 'utf8')
 
-      const newSw =
-        `self.__precacheManifest = ${JSON.stringify(manifest.precaches, null, 2)}`
-        + '\n'
-        + genSw.replace(genSw.match(/"precache-manifest.*/)[0], '')
+      // const newSw =
+      //   `self.__precacheManifest = ${JSON.stringify(manifest.precaches, null, 2)}`
+      //   + '\n'
+      //   + genSw.replace(genSw.match(/"precache-manifest.*/)[0], '')
 
-      return await fs.writeFile(this.opts.filename, newSw, 'utf8')
+      const urls = manifest.precaches.map(({ url }) => url)
+      const swDest = join(this.opts.outputPath, 'service-worker.js')
+
+      const manifestEntries = `self.__precacheManifest = ${JSON.stringify(manifest.precaches, null, 2)}`
+      const manifestFilename = `manifest-entries.${this.opts.buildId}.js`
+      const manifestFilePath = join('static', manifestFilename)
+
+      await writeFile(manifestFilePath, manifestEntries, 'utf8')
+      console.log(this.opts)
+      await generateSW({ swDest, importScripts: [`/${manifestFilePath}`], globDirectory: ' ', ...this.opts})
     }, err => {
       throw new Error(`Precached failed: ${err.toString()}`)
     })

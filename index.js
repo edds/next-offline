@@ -51,7 +51,7 @@ module.exports = (nextConfig = {}) => ({
 
     config.plugins = [
       ...config.plugins,
-      new GenerateSW({ ...workboxOpts }),
+      // new GenerateSW({ ...workboxOpts }),
       new SwGen({ buildId: options.buildId, ...workboxOpts })
     ]
 
